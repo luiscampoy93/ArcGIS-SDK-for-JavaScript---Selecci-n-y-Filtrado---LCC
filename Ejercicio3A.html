@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>Query</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.27/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.27/"></script>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/FeatureLayer",
+        "esri/layers/GraphicsLayer",
+        "esri/rest/support/Query",
+        "esri/Graphic"
+      ], function (Map, MapView, FeatureLayer, GraphicsLayer, Query, Graphic) {
+        
+        var resultsLayer = new GraphicsLayer();
+    
+        var map = new Map({
+          basemap: "streets",
+          layers: [resultsLayer]
+        });
+    
+        var view = new MapView({
+          container: "viewDiv",
+          map: map,
+          zoom: 5,
+          center: [-112.9007, 45.0379]
+        });
+    
+        let featureLayer = new FeatureLayer({
+          url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/national_park_service/FeatureServer",
+          outFields: ["City", "State", "Zip_Code", "Phone_Number"]
+        });
+    
+        map.add(featureLayer);
+    
+        var query = {
+          where: "Location_Name = 'Fort Vancouver National Historic Site'",
+          returnGeometry: true,
+          outFields: ["City", "State", "Zip_Code", "Phone_Number"]
+        };
+    
+        var polygon = {
+          type: "polygon",
+          spatialReference: { wkid: 4326 },
+          rings: [
+            [-99.55, 45.0],
+            [-78.0, 45.0],
+            [-78.0, 30.0],
+            [-99.55, 30.0],
+            [-99.55, 45.0] // Cierra el polígono
+          ]
+        };
+    
+        let symbol = {
+          type: "simple-fill",
+          color: [0, 0, 255, 0.3],
+          outline: {
+            color: [0, 0, 255],
+            width: 2
+          }
+        };
+    
+        // Agregar el polígono al mapa
+        var polygonGraphic = new Graphic({
+          geometry: polygon,
+          symbol: symbol
+        });
+    
+        resultsLayer.add(polygonGraphic);
+    
+        // Ejecutar la consulta
+        featureLayer
+          .queryFeatures(query)
+          .then(function (results) {
+            console.log("Resultados de la consulta:", results);
+            displayResults(results);
+          })
+          .catch(function (error) {
+            console.error("Error en la consulta:", error);
+          });
+    
+        // Función para mostrar los resultados
+        function displayResults(results) {
+          var features = results.features.map(function (feature) {
+            return new Graphic({
+              geometry: feature.geometry,
+              attributes: feature.attributes,
+              symbol: {
+                type: "simple-marker",
+                style: "diamond",
+                size: 26.5,
+                color: "red"
+              }
+            });
+          });
+          resultsLayer.addMany(features);
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>
